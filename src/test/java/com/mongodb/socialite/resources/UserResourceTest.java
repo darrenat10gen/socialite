@@ -63,13 +63,13 @@ public class UserResourceTest extends ResourceTest {
 
     @Test
     public void shouldCreateAUser() throws Exception {
-        assertThat( client().resource("/users?user_id=user3").post(User.class));
+        assertThat( client().resource("/users/user3").put(User.class));
         verify(users).createUser(eq(user3));
     }
 
     @Test(expected = Exception.class)
     public void shouldNotCreateDuplicateUser() throws Exception {
-        assertThat(client().resource("/users?user_id=user1").post(User.class));
+        assertThat(client().resource("/users/user1").put(User.class));
     }
 
     @Test

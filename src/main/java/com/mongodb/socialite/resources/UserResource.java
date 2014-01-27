@@ -36,9 +36,10 @@ public class UserResource {
         return user;
     }
 
-    @POST
+    @PUT
+    @Path("/{user_id}")
     public User create(
-            @QueryParam("user_id") String userId, 
+            @PathParam("user_id") String userId, 
             @QueryParam("user_data") JSONParam userData ) {
 
         User newUser = new User(userId, userData);
@@ -46,8 +47,17 @@ public class UserResource {
         return newUser;
     }
 
+    @DELETE
+    @Path("/{user_id}")
+    public void delete(
+            @PathParam("user_id") String userId, 
+            @QueryParam("user_data") JSONParam userData ) {
+
+        this.userGraph.removeUser(userId);
+    }
+
     @GET
-    @Path("/{user_id}/followers/count")
+    @Path("/{user_id}/follower_count")
     public FollowerCount getFollowerCount(@PathParam("user_id") String user_id ) {
         User user = get(user_id);
         return this.userGraph.getFollowerCount(user);
@@ -70,25 +80,25 @@ public class UserResource {
     }
 
     @GET
-    @Path("/{user_id}/following/count")
+    @Path("/{user_id}/following_count")
     public FollowingCount getFriendsCount(@PathParam("user_id") String user_id ) {
         User user = get(user_id);
         return this.userGraph.getFollowingCount(user);
     }
 
-    @POST
-    @Path("/{user_id}/follow")
+    @PUT
+    @Path("/{user_id}/following/{target}")
     public void follow(@PathParam("user_id") String user_id,
-            @QueryParam("target") String to_follow ) {
+    		@PathParam("target") String to_follow ) {
         User user = get(user_id);
         User target = get(to_follow);
         this.userGraph.follow( user, target );
     }
 
-    @POST
-    @Path("/{user_id}/unfollow")
+    @DELETE
+    @Path("/{user_id}/following/{target}")
     public void unfollow(@PathParam("user_id") String user_id,
-            @QueryParam("target") String to_unfollow ) {
+            @PathParam("target") String to_unfollow ) {
         User user = get(user_id);
         User target = get(to_unfollow);
         this.userGraph.unfollow( user, target );
