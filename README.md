@@ -1,8 +1,8 @@
 A Scalable Social Status Feed
 =============================
 
-There are a bunch of users. Each user can "follow" 0 or more other users. Users can send messages to their followers.
- Users have an "inbox" that contains the messages from people they follow. Each user also has a "timeline" that
+The system has a number of users and each can "follow" zero or more other users. Users can send messages to their followers.
+ Users have a timeline that contains the messages from people they follow. Each user also has a "posts" resource that
  contains the messages they have sent.
 
 The service is implemented using [dropwizard](http://www.dropwizard.com).
@@ -10,41 +10,39 @@ The service is implemented using [dropwizard](http://www.dropwizard.com).
 REST API
 --------
 
-    GET     /users/{user_id}                 Get a User by their ID
-    GET     /users/{user_id}/followers       Get a list of followers of a user
-    GET     /users/{user_id}/followers/count Get the number of followers of a user
-    GET     /users/{user_id}/following       Get the list of users this user is following
-    GET     /users/{user_id}/following/count Get the number of users this user follows
-    GET     /users/{user_id}/posts           Get the messages sent by a user
-    GET     /users/{user_id}/timeline        Get the timeline for this user
-    POST    /users                           Create a new user
-    POST    /users/{user_id}/follow          Follow a user
-    POST    /users/{user_id}/posts           Send a message from this user
-    POST    /users/{user_id}/unfollow        Unfollow a user
+    GET     /users/{user_id}                     Get a User by their ID
+    DELETE  /users/{user_id}                     Remove a user by their ID
+    POST    /users/{user_id}/posts               Send a message from this user
+    GET     /users/{user_id}/followers           Get a list of followers of a user
+    GET     /users/{user_id}/followers_count     Get the number of followers of a user
+    GET     /users/{user_id}/following           Get the list of users this user is following
+    GET     /users/{user_id}/following_count     Get the number of users this user follows
+    GET     /users/{user_id}/posts               Get the messages sent by a user
+    GET     /users/{user_id}/timeline            Get the timeline for this user
+    PUT     /users/{user_id}                     Create a new user
+    PUT     /users/{user_id}/following/{target}  Follow a user
+    DELETE  /users/{user_id}/following/{target}  Unfollow a user
 
 Using the API
 ==================
 
 Create some users
 -------------
-    $ curl -X POST localhost:8080/users?user_id=jsr
+    $ curl -X PUT localhost:8080/users/jsr
     {"_id":"jsr"}
 
-    $ curl -X POST localhost:8080/users?user_id=darren
+    $ curl -X PUT localhost:8080/users/darren
     {"_id":"darren"}
 
-    $ curl -X POST localhost:8080/users?user_id=ian
+    $ curl -X PUT localhost:8080/users/ian
     {"_id":"ian"}
 
 Add some following relationships
 --------------------------------
 
     Ian and Darren follow jared
-    $ curl -X POST localhost:8080/users/ian/follow?target=jsr
-    {"_id":"ian"}
-
-    $ curl -X POST localhost:8080/users/darren/follow?target=jsr
-    {"_id":"darren"}
+    $ curl -X PUT localhost:8080/users/ian/following/jsr
+    $ curl -X PUT localhost:8080/users/darren/following/jsr
 
     Get jsr's followers
     $ curl localhost:8080/users/jsr/followers
