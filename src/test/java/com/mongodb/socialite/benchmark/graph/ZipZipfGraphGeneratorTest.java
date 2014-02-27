@@ -5,14 +5,11 @@ import com.mongodb.socialite.benchmark.graph.GraphGenerator;
 import com.mongodb.socialite.benchmark.graph.GraphMutation;
 import com.mongodb.socialite.benchmark.graph.ZipZipfGraphGenerator;
 
-import org.junit.Ignore;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-
-import static com.mongodb.util.MyAsserts.assertTrue;
 
 public class ZipZipfGraphGeneratorTest {
 
