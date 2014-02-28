@@ -4,20 +4,21 @@ import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import com.mongodb.DB;
-import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.socialite.api.ServiceException;
 import com.mongodb.socialite.api.User;
 import com.mongodb.socialite.configuration.DefaultUserServiceConfiguration;
 import com.mongodb.socialite.users.DefaultUserService;
+import com.mongodb.socialite.util.DatabaseTools;
 
 import static org.junit.Assert.*;
 
@@ -29,9 +30,7 @@ public class DefaultUserServiceTest {
 	private static final String BASE_URI = "mongodb://localhost/";
 	
 	private DefaultUserService userService;
-	private DefaultUserServiceConfiguration config;
-	private DB database;
-        private MongoClientURI uri;
+    private MongoClientURI uri;
 
 
 	@Parameters
@@ -76,20 +75,20 @@ public class DefaultUserServiceTest {
 
     @Before
     public void setUp() throws Exception {
-        database.getCollection(this.config.user_collection_name).drop();
-        database.getCollection(this.config.follower_collection_name).drop();
-        database.getCollection(this.config.following_collection_name).drop();
-        userService = new DefaultUserService(uri, config);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        userService.shutdown(10, TimeUnit.SECONDS);
     }
 
     public DefaultUserServiceTest(String testName, DefaultUserServiceConfiguration config) 
     		throws UnknownHostException {
 		
-        this.config = config;
         String databaseName = DATABASE_NAME + "-" + testName;
         uri = new MongoClientURI(BASE_URI + databaseName);
-        this.database = new MongoClient(uri).getDB(databaseName);
-        this.database.dropDatabase();
+        DatabaseTools.dropDatabaseByURI(uri, databaseName);
+        userService = new DefaultUserService(uri, config);
 	}
 
     @Test

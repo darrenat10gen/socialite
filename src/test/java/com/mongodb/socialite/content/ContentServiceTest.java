@@ -2,8 +2,6 @@ package com.mongodb.socialite.content;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.mongodb.DB;
-import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.socialite.ServiceFactory;
 import com.mongodb.socialite.ServiceManager;
@@ -12,7 +10,9 @@ import com.mongodb.socialite.api.ServiceException;
 import com.mongodb.socialite.api.User;
 import com.mongodb.socialite.services.ContentService;
 import com.mongodb.socialite.util.ContentTools;
+import com.mongodb.socialite.util.DatabaseTools;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 @RunWith(Parameterized.class)
 public class ContentServiceTest {
@@ -40,7 +41,6 @@ public class ContentServiceTest {
     private static final String BASE_URI = "mongodb://localhost/";
 
     private ContentService content;
-    private DB database;
 
     private final User user1 = new User("user1");
     private final User user2 = new User("user2");
@@ -67,17 +67,20 @@ public class ContentServiceTest {
         
         String databaseName = DATABASE_NAME + "-" + testName;
         MongoClientURI uri = new MongoClientURI(BASE_URI + databaseName);
-        this.database = new MongoClient(uri).getDB(databaseName);
-        this.database.dropDatabase();
+        DatabaseTools.dropDatabaseByURI(uri, databaseName);
         
         // Load the configured ContentService implementation 
         ServiceFactory factory = new ServiceFactory();
-        content = factory.createService(ContentService.class, svcConfig, uri);
+        this.content = factory.createService(ContentService.class, svcConfig, uri);
     }
     
     @Before
     public void setUp() throws Exception {
-        database.dropDatabase();
+    }
+
+    @After
+    public void tearDown() throws Exception {
+    	this.content.shutdown(10, TimeUnit.SECONDS);
     }
 
     @Test

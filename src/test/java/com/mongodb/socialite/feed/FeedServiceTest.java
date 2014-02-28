@@ -8,15 +8,15 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import com.mongodb.DB;
-import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.socialite.ServiceFactory;
 import com.mongodb.socialite.ServiceManager;
@@ -27,6 +27,7 @@ import com.mongodb.socialite.services.ContentService;
 import com.mongodb.socialite.services.FeedService;
 import com.mongodb.socialite.services.UserGraphService;
 import com.mongodb.socialite.users.InMemoryUserService;
+import com.mongodb.socialite.util.DatabaseTools;
 
 @RunWith(Parameterized.class)
 public class FeedServiceTest {
@@ -37,7 +38,6 @@ public class FeedServiceTest {
     private static InMemoryUserService userService;
     private static InMemoryContentService contentService;
     private final FeedService feedService;
-    private final DB database;
     
     private final static User user1 = new User("user1");
     private final static User user2 = new User("user2");
@@ -100,17 +100,20 @@ public class FeedServiceTest {
 
     @Before
     public void setUp() throws Exception {
-        database.dropDatabase();
         contentService.reset();
         userService.reset();
+    }
+
+    @After
+    public void tearDown() throws Exception {
+    	feedService.shutdown(10, TimeUnit.SECONDS);
     }
 
     public FeedServiceTest(String testName, Map<String, Object> feedConfig) 
                 throws UnknownHostException {
         String databaseName = DATABASE_NAME + "-" + testName;
         MongoClientURI uri = new MongoClientURI(BASE_URI + databaseName);
-        this.database = new MongoClient(uri).getDB(databaseName);
-        this.database.dropDatabase();
+        DatabaseTools.dropDatabaseByURI(uri, databaseName);
         // Load the configured FeedService implementation passing
         // the UserGraph and Content service as arguments
         ServiceFactory factory = new ServiceFactory();

@@ -33,6 +33,7 @@ import com.mongodb.socialite.configuration.AsyncServiceConfiguration;
 import com.mongodb.socialite.content.InMemoryContentService;
 import com.mongodb.socialite.services.FeedService;
 import com.mongodb.socialite.users.InMemoryUserService;
+import com.mongodb.socialite.util.DatabaseTools;
 
 @RunWith(Parameterized.class)
 public class AsyncFeedServiceTest {
@@ -53,7 +54,6 @@ public class AsyncFeedServiceTest {
     private static InMemoryContentService contentService;
     private ServiceManager services;
     private FeedService feedService;
-    private final DB database;
     private final DB asyncDatabase;
 
     private Content[] sendPosts(User user, int count){
@@ -72,9 +72,11 @@ public class AsyncFeedServiceTest {
     public void stopServices() throws Exception {
         
         // shutdown the service
+    	
         logger.info("Shutting down services...");
         services.stop();
         logger.info("Services shut down.");
+        asyncDatabase.getMongo().close();
     }
 
     @Parameters
@@ -133,8 +135,7 @@ public class AsyncFeedServiceTest {
         asyncDatabase.dropDatabase();
         String databaseName = DATABASE_NAME + "-" + testName;
         MongoClientURI uri = new MongoClientURI(BASE_URI + databaseName);
-        this.database = new MongoClient(uri).getDB(databaseName);
-        this.database.dropDatabase();
+        DatabaseTools.dropDatabaseByURI(uri, databaseName);
         this.services = new ServiceManager(svcConfig, uri);
         this.feedService = services.getFeedService();
         contentService = (InMemoryContentService) services.getContentService();

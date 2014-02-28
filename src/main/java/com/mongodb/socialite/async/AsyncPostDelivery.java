@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.MongoClientURI;
-import com.mongodb.socialite.ServiceManager;
 import com.mongodb.socialite.api.Content;
 import com.mongodb.socialite.api.ContentId;
 import com.mongodb.socialite.api.FollowerCount;
@@ -88,7 +87,7 @@ import com.yammer.dropwizard.config.Configuration;
 
     @Override
     public void shutdown(long timeout, TimeUnit unit) {
-        // nothing to do       
+    	wrappedService.shutdown(timeout, unit);
     }
     
     @Override
