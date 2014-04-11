@@ -4,7 +4,10 @@ target
 .classpath
 .project
 .settings
+.*.swp
 data
 .DS_Store
 output
 
+
+config.yml
