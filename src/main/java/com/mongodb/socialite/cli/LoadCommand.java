@@ -8,6 +8,7 @@ import com.mongodb.socialite.api.User;
 import com.mongodb.socialite.benchmark.graph.GraphGenerator;
 import com.mongodb.socialite.benchmark.graph.GraphMutation;
 import com.mongodb.socialite.benchmark.graph.ZipZipfGraphGenerator;
+import com.mongodb.socialite.services.ContentService;
 import com.mongodb.socialite.services.FeedService;
 import com.mongodb.socialite.services.UserGraphService;
 import com.mongodb.socialite.util.BlockingWorkQueue;
@@ -48,6 +49,7 @@ public class LoadCommand extends ConfiguredCommand<SocialiteConfiguration> {
         ServiceManager services = new ServiceManager(config.services, default_uri);
         final UserGraphService userGraph = services.getUserGraphService();
         final FeedService feedService = services.getFeedService();
+        final ContentService contentService = services.getContentService();
 
         final int threads = namespace.getInt("threads");
 
@@ -82,6 +84,7 @@ public class LoadCommand extends ConfiguredCommand<SocialiteConfiguration> {
                     for( int i = 0; i < userCount; i++ ) {
                         final User user = new User( String.valueOf(i));
                         final Content content = new Content( user, randomString(), null);
+                        contentService.publishContent(user, content);
                         feedService.post( user, content );
                     }
                 }
