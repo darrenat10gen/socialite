@@ -5,7 +5,7 @@ The system has a number of users and each can "follow" zero or more other users.
  Users have a timeline that contains the messages from people they follow. Each user also has a "posts" resource that
  contains the messages they have sent.
 
-The service is implemented using [dropwizard](http://www.dropwizard.com).
+The service is implemented using [dropwizard](http://www.dropwizard.io).
 
 REST API
 --------
