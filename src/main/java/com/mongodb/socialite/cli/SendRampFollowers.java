@@ -9,7 +9,7 @@ import com.mongodb.socialite.benchmark.generator.ContentGenerator;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 
-public class SendRampFollowers extends BenchmarkCommand {
+public class SendRampFollowers extends RampBenchmarkBase {
 
     static final int TIMELINE_SIZE = 50;
     static final int MAX_ITERATIONS = 100;
