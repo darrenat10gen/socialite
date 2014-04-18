@@ -1,12 +1,12 @@
 package com.mongodb.socialite.cli;
 
 import com.codahale.metrics.*;
+import com.codahale.metrics.Timer;
 import com.mongodb.MongoClientURI;
 import com.mongodb.socialite.ServiceManager;
 import com.mongodb.socialite.SocialiteConfiguration;
-import com.mongodb.socialite.services.ContentService;
-import com.mongodb.socialite.services.FeedService;
-import com.mongodb.socialite.services.UserGraphService;
+import com.mongodb.socialite.benchmark.traffic.TrafficModel;
+import com.mongodb.socialite.resources.UserResource;
 import com.yammer.dropwizard.cli.ConfiguredCommand;
 import com.yammer.dropwizard.config.Bootstrap;
 
@@ -14,18 +14,91 @@ import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 
 import java.io.File;
-import java.util.Locale;
-import java.util.concurrent.TimeUnit;
+import java.sql.Timestamp;
+import java.util.*;
+import java.util.concurrent.*;
 
-public abstract class BenchmarkCommand extends ConfiguredCommand<SocialiteConfiguration>  {
+public class BenchmarkCommand extends ConfiguredCommand<SocialiteConfiguration> {
 
-    private ServiceManager services;
-    private final MetricRegistry metrics = new MetricRegistry();
-    private ScheduledReporter reporter;
+    public BenchmarkCommand() {
+        super("benchmark", "Runs a synthetic workload benchmark");
+    }
 
+    @Override
+    public void configure(Subparser subparser) {
+        super.configure(subparser);
 
-    protected BenchmarkCommand(String name, String description) {
-        super(name, description);
+        subparser.defaultHelp(true)
+                .description("Workload generator for socialite social data platform");
+
+        subparser.addArgument("--total_users")
+                .required(true)
+                .type(Integer.class)
+                .help("Total number of users that exist");
+
+        subparser.addArgument("--active_users")
+                .required(true)
+                .type(Integer.class)
+                .help("Number of concurrently active users");
+
+        subparser.addArgument("--session_duration")
+                .required(true)
+                .type(Integer.class)
+                .setDefault(25)
+                .help("The number of operations a user performs during a session");
+
+        subparser.addArgument("--concurrency")
+                .required(false)
+                .type(Integer.class)
+                .setDefault(16)
+                .help("The number of simultaneous requests that can be sent at a time");
+
+        subparser.addArgument("--target_rate")
+                .required(true)
+                .type(Integer.class)
+                .help("The number of operations per second the workload should generate");
+
+        subparser.addArgument("--follow_pct")
+                .required(false)
+                .type(Float.class)
+                .setDefault(0f)
+                .help("Follow transaction percent");
+
+        subparser.addArgument("--unfollow_pct")
+                .required(false)
+                .type(Float.class)
+                .setDefault(0f)
+                .help("Follow transaction percent");
+
+        subparser.addArgument("--read_timeline_pct")
+                .required(false)
+                .type(Float.class)
+                .setDefault(0f)
+                .help("Follow transaction percent");
+
+        subparser.addArgument("--scroll_timeline_pct")
+                .required(false)
+                .type(Float.class)
+                .setDefault(0f)
+                .help("Follow transaction percent");
+
+        subparser.addArgument("--send_content_pct")
+                .required(false)
+                .type(Float.class)
+                .setDefault(0f)
+                .help("Send content percent");
+
+        subparser.addArgument("--duration")
+                .required(false)
+                .type(Integer.class)
+                .setDefault(10)
+                .help("How long the test should run for in seconds");
+
+        subparser.addArgument("--csv")
+                .required(false)
+                .type(String.class)
+                .help("A directory where CSV files will be output, 1 per transaction type");
+
     }
 
     @Override
@@ -34,64 +107,101 @@ public abstract class BenchmarkCommand extends ConfiguredCommand<SocialiteConfig
 
         // Get the configured default MongoDB URI
         MongoClientURI default_uri = config.mongodb.default_database_uri;
-        
+
         // Initialize the services as per configuration
-        this.services = new ServiceManager(config.services, default_uri);
-        
-        setupReporter(namespace.getString("out"));
-        this.runCommand( namespace );
-        this.services.stop();
-    }
+        ServiceManager services = new ServiceManager(config.services, default_uri);
 
-    @Override
-    public void configure(Subparser subparser) {
-        super.configure(subparser);    //To change body of overridden methods use File | Settings | File Templates.
-        subparser.addArgument("--out").type(String.class);
-    }
+        final UserResource userResource = new UserResource(services.getContentService(),
+                services.getFeedService(), services.getUserGraphService());
 
-    public abstract void runCommand(Namespace namespace);
+        final TrafficModel model = new TrafficModel(
+                namespace.getInt("total_users"),
+                namespace.getInt("active_users"),
+                namespace.getFloat("follow_pct"),
+                namespace.getFloat("unfollow_pct"),
+                namespace.getFloat("read_timeline_pct"),
+                namespace.getFloat("scroll_timeline_pct"),
+                namespace.getFloat("send_content_pct"),
+                namespace.getInt("session_duration")
+        );
 
-    protected UserGraphService getUserGraphService() {
-        return this.services.getUserGraphService();
-    }
+        // Metrics setup
+        final Map<String, Timer> timers = new HashMap<String, Timer>();
+        final MetricRegistry metrics = new MetricRegistry();
 
-    protected FeedService getFeedService() {
-        return this.services.getFeedService();
-    }
+        String dirname = namespace.getString("csv");
 
-    protected ContentService getContentService() {
-        return this.services.getContentService();
-    }
+        ScheduledReporter reporter = null;
 
-    protected Timer getTimer(String name) {
-        return this.metrics.getTimers().get(name);
-    }
+        if (dirname != null) {
+            File outDirectory = new File(dirname);
+            if( !outDirectory.exists() ) {
+                System.err.println("ERROR: Output directory " + dirname + " does not exist");
+                return;
+            }
+            if( !outDirectory.isDirectory() ) {
+                System.err.println("ERROR: CSV path " + dirname + " is not a directory");
+                return;
+            }
 
-    protected void addTimer(String name) {
-        this.metrics.timer(name);
-    }
-
-    protected Counter getCounter(String name) {
-        return this.metrics.getCounters().get(name);
-    }
-
-    protected void addCounter(String name) {
-        this.metrics.counter(name);
-    }
-
-    protected void setupReporter(String dirname) {
-        if(dirname != null ) {
             reporter = CsvReporter.forRegistry(metrics)
-                    .formatFor(Locale.US)
-                    .convertRatesTo(TimeUnit.SECONDS)
                     .convertDurationsTo(TimeUnit.MILLISECONDS)
-                    .build(new File(dirname));
+                    .convertRatesTo(TimeUnit.SECONDS)
+                    .formatFor(Locale.US)
+                    .build(outDirectory);
         } else {
             reporter = ConsoleReporter.forRegistry(metrics)
                     .convertRatesTo(TimeUnit.SECONDS)
                     .convertDurationsTo(TimeUnit.MILLISECONDS)
                     .build();
         }
-        reporter.start(1, TimeUnit.SECONDS);
+
+        timers.put("follow", metrics.timer("follow"));
+        timers.put("unfollow", metrics.timer("unfollow"));
+        timers.put("read_timeline", metrics.timer("read_timeline"));
+        timers.put("scroll_timeline", metrics.timer("scroll_timeline"));
+        timers.put("send_content", metrics.timer("send_content"));
+
+        int numCores = Runtime.getRuntime().availableProcessors();
+        ScheduledExecutorService executor = Executors.newScheduledThreadPool(numCores);
+
+        // Each thread should sleep for 'target_rate' * concurrency micros so their combined rate
+        // equals the target rate.
+        long sleepMicroseconds = (1000000/namespace.getInt("target_rate")) * namespace.getInt("concurrency");
+
+        reporter.start(1,TimeUnit.SECONDS);
+        final List<ScheduledFuture<?>> futures = new ArrayList<ScheduledFuture<?>>(namespace.getInt("concurrency"));
+        for( int i = 0; i < namespace.getInt("concurrency"); i++ ){
+            final Runnable worker = new Runnable() {
+                public void run() {
+                    model.next(userResource, timers);
+                }
+            };
+
+            futures.add(executor.scheduleAtFixedRate(worker, 0, sleepMicroseconds, TimeUnit.MICROSECONDS));
+        }
+
+        Thread.sleep(namespace.getInt("duration") * 1000);
+        reporter.stop();
+        System.out.println("Test done. Shutting down...");
+        for( ScheduledFuture<?> f : futures ) f.cancel(true);
+        executor.shutdown();
+        executor.awaitTermination(2, TimeUnit.SECONDS);
+        services.stop();
     }
+
+    private static final char[] chars = "abcdefghijklmnopqrstuvwxyz".toCharArray();
+    private Random random = new Random();
+    protected String randomString() {
+
+        int length = Math.abs(10 + random.nextInt(130));
+
+        StringBuilder sb = new StringBuilder();
+        for( int i = 0; i < length; i++ ) {
+            char c = chars[random.nextInt(chars.length)];
+            sb.append(c);
+        }
+        return sb.toString();
+    }
+
 }

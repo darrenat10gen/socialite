@@ -24,10 +24,8 @@ public class SocialiteService extends Service<SocialiteConfiguration> {
     public void initialize(Bootstrap<SocialiteConfiguration> configBootstrap) {
         configBootstrap.setName("status-feed");
         configBootstrap.addCommand( new LoadCommand() );
-        configBootstrap.addCommand( new BenchmarkTimelineCommand() );
-        configBootstrap.addCommand( new MixedWorkloadBenchmark() );
         configBootstrap.addCommand( new OutputGraphCommand() );
-        configBootstrap.addCommand( new RunCommand() );
+        configBootstrap.addCommand( new BenchmarkCommand() );
         configBootstrap.addCommand( new TimelineRampFollowers() );
         configBootstrap.addCommand( new SendRampFollowers() );
     }

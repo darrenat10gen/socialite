@@ -8,7 +8,7 @@ import com.mongodb.socialite.benchmark.generator.ContentGenerator;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 
-public class TimelineRampFollowers extends BenchmarkCommand {
+public class TimelineRampFollowers extends RampBenchmarkBase {
 
     private static final int MAX_ITERATIONS = 100;
     private static final int TIMELINE_SIZE = 50;
