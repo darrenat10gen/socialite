@@ -119,7 +119,7 @@ the default options will be used.
 
 a sample invocation of the command
 
-    $ java -jar ./target/socialite-0.0.1-SNAPSHOT.jar load --users 1000 --followers 100 --messages 100
+    $ java -jar ./target/socialite-0.0.1-SNAPSHOT.jar load --users 1000 --maxfollows 100 --messages 100
 
 This will create 1000 users. Each user will have around 100 followers. Each user will have sent 100 messages.
 
