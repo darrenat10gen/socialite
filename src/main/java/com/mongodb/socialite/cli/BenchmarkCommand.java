@@ -54,7 +54,8 @@ public class BenchmarkCommand extends ConfiguredCommand<SocialiteConfiguration> 
                 .help("The number of simultaneous requests that can be sent at a time");
 
         subparser.addArgument("--target_rate")
-                .required(true)
+                .required(false)
+                .setDefault(0)
                 .type(Integer.class)
                 .help("The number of operations per second the workload should generate");
 
@@ -162,16 +163,20 @@ public class BenchmarkCommand extends ConfiguredCommand<SocialiteConfiguration> 
         timers.put("scroll_timeline", metrics.timer("scroll_timeline"));
         timers.put("send_content", metrics.timer("send_content"));
 
-        int numCores = Runtime.getRuntime().availableProcessors();
-        ScheduledExecutorService executor = Executors.newScheduledThreadPool(numCores);
+        int concurrency = namespace.getInt("concurrency");
+        ScheduledExecutorService executor = Executors.newScheduledThreadPool(concurrency);
 
         // Each thread should sleep for 'target_rate' * concurrency micros so their combined rate
         // equals the target rate.
-        long sleepMicroseconds = (1000000/namespace.getInt("target_rate")) * namespace.getInt("concurrency");
+        int targetRate = namespace.getInt("target_rate");
+        long sleepMicroseconds = 1;
+        if( targetRate > 0 ) {
+            sleepMicroseconds = (1000000 / namespace.getInt("target_rate")) * namespace.getInt("concurrency");
+        }
 
         reporter.start(1,TimeUnit.SECONDS);
         final List<ScheduledFuture<?>> futures = new ArrayList<ScheduledFuture<?>>(namespace.getInt("concurrency"));
-        for( int i = 0; i < namespace.getInt("concurrency"); i++ ){
+        for( int i = 0; i < concurrency; i++ ){
             final Runnable worker = new Runnable() {
                 public void run() {
                     model.next(userResource, timers);

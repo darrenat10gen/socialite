@@ -49,7 +49,8 @@ Target transaction rate
 
 The traffic generator allows you to control the total rate at which requests are sent to the system. This is
 inclusive of all types of transactions (follow, unfollow, read own timeline, read timeline,
-scroll timeline, send content).
+scroll timeline, send content). Omitting this value, or setting it to 0 will cause the driver to run the load as
+quickly as it can.
 
 Transaction mix
 ---------------
