@@ -14,11 +14,15 @@ import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 
 import java.io.File;
-import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class BenchmarkCommand extends ConfiguredCommand<SocialiteConfiguration> {
+
+    private static Logger logger = LoggerFactory.getLogger(BenchmarkCommand.class);
 
     public BenchmarkCommand() {
         super("benchmark", "Runs a synthetic workload benchmark");
@@ -179,7 +183,12 @@ public class BenchmarkCommand extends ConfiguredCommand<SocialiteConfiguration> 
         for( int i = 0; i < concurrency; i++ ){
             final Runnable worker = new Runnable() {
                 public void run() {
-                    model.next(userResource, timers);
+                	try{
+                        model.next(userResource, timers);                		
+                	}
+                	catch(Exception e){
+                		logger.error("Exception running workload", e);
+                	}
                 }
             };
 

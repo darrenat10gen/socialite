@@ -118,6 +118,7 @@ public class TrafficModel {
                 break;
             case SCROLL_TIMELINE:
                 List<Content> results = resource.getTimeline( user.id(), 50, null );
+                if(results.size() < 50) break; // not enough to scroll off cache
                 Content anchor = results.get(49);
                 ctx = timers.get("scroll_timeline").time();
                 resource.getTimeline( user.id(), 50, anchor.getContentId() );
