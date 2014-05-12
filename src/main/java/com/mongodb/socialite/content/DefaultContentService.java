@@ -64,6 +64,11 @@ public class DefaultContentService
     @Override
     public List<Content> getContentFor(List<User> authors, ContentId anchor, int limit) {
 
+    	// If no authors then no content !
+    	if(authors == null || authors.isEmpty()){
+    		return Collections.emptyList();
+    	}
+    	
         // Special case going backward from head yields nothing
         if(anchor == null && limit < 0){
             return Collections.emptyList();
